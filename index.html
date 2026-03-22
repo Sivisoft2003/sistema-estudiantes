@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <head>
+    <title>Sistema de Estudiantes</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+
+    <h1 class="text-center mb-4">Sistema de Estudiantes</h1>
+
+    <div class="card p-4 shadow mb-4">
+        <h4>Registrar / Editar</h4>
+
+        <input type="text" id="nombre" class="form-control mb-2" placeholder="Nombre">
+        <input type="number" id="edad" class="form-control mb-2" placeholder="Edad">
+        <input type="text" id="carrera" class="form-control mb-2" placeholder="Carrera">
+
+        <button onclick="guardar()" class="btn btn-primary">Guardar</button>
+        <button onclick="logout()" class="btn btn-danger mb-3">Cerrar sesión</button>
+    </div>
+
+    <div class="card p-4 shadow">
+        <h4>Lista de Estudiantes</h4>
+        <input type="text" id="buscador" class="form-control mb-3" placeholder="Buscar estudiante..." onkeyup="listar()">
+        <ul id="lista" class="list-group"></ul>
+    </div>
+
+</div>
+
+</body>
+
+<script>
+    if (localStorage.getItem("logueado") !== "true") {
+    window.location.href = "login.html";
+}
+    let editandoId = null;
+function guardar() {
+    const nombre = document.getElementById("nombre").value;
+    const edad = document.getElementById("edad").value;
+    const carrera = document.getElementById("carrera").value;
+
+    if (editandoId) {
+        // EDITAR
+        fetch(`http://localhost:3000/estudiantes/${editandoId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ nombre, edad, carrera })
+        })
+        .then(() => {
+            editandoId = null;
+            limpiar();
+            listar();
+        });
+    } else {
+        // CREAR
+        fetch("http://localhost:3000/estudiantes", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ nombre, edad, carrera })
+        })
+        .then(() => {
+            limpiar();
+            listar();
+        });
+    }
+}
+function editar(est) {
+    document.getElementById("nombre").value = est.nombre;
+    document.getElementById("edad").value = est.edad;
+    document.getElementById("carrera").value = est.carrera;
+
+    editandoId = est.id;
+}
+function limpiar() {
+    document.getElementById("nombre").value = "";
+    document.getElementById("edad").value = "";
+    document.getElementById("carrera").value = "";
+}
+
+function listar() {
+    fetch("http://localhost:3000/estudiantes")
+    .then(res => res.json())
+    .then(data => {
+
+        const lista = document.getElementById("lista");
+        const filtro = document.getElementById("buscador").value.toLowerCase();
+
+        lista.innerHTML = "";
+
+        data.forEach(est => {
+
+            if (
+                est.nombre.toLowerCase().includes(filtro) ||
+                est.carrera.toLowerCase().includes(filtro)
+            ) {
+
+                const li = document.createElement("li");
+
+                li.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${est.nombre}</strong> - ${est.carrera} (${est.edad} años)
+                        </div>
+                        <div>
+                            <button class="btn btn-warning btn-sm" onclick='editar(${JSON.stringify(est)})'>✏️</button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminar(${est.id})">❌</button>
+                        </div>
+                    </div>
+                `;
+
+                li.classList.add("list-group-item");
+                lista.appendChild(li);
+            }
+        });
+    });
+}
+
+// Cargar al inicio
+listar();
+function eliminar(id) {
+    fetch(`http://localhost:3000/estudiantes/${id}`, {
+        method: "DELETE"
+    })
+    .then(() => {
+        listar();
+    });
+}
+function logout() {
+    localStorage.removeItem("logueado");
+    window.location.href = "login.html";
+}
+</script>
+</html>
