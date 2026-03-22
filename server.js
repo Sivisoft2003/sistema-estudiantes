@@ -5,64 +5,45 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
+
+// 1. Middlewares
 app.use(cors());
 app.use(bodyParser.json());
+// Sirve los archivos HTML, CSS y JS automáticamente
 app.use(express.static(path.join(__dirname)));
 
-// Base de datos
-const db = new Database('estudiantes.db');
+// 2. Configuración de Base de Datos
+const db = new Database(path.join(__dirname, 'estudiantes.db'));
+console.log("Conectado a la base de datos SQLite");
 
-console.log("Conectado a la base de datos");
-
-// Crear tablas
+// 3. Crear tablas si no existen e insertar admin
 db.exec(`
-CREATE TABLE IF NOT EXISTS estudiantes (
+  CREATE TABLE IF NOT EXISTS estudiantes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT,
     edad INTEGER,
     carrera TEXT
-);
-
-CREATE TABLE IF NOT EXISTS usuarios (
+  );
+  CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
     password TEXT
-);
+  );
 `);
 
-// Insertar usuario admin si no existe
-const user = db.prepare("SELECT * FROM usuarios WHERE username = ?").get("admin");
-
-if (!user) {
+const adminExistente = db.prepare("SELECT * FROM usuarios WHERE username = ?").get("admin");
+if (!adminExistente) {
     db.prepare("INSERT INTO usuarios (username, password) VALUES (?, ?)")
       .run("admin", "1234");
-    console.log("Usuario admin creado");
+    console.log("Usuario admin creado por defecto");
 }
 
-// Ruta principal
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-// Insertar estudiante
-app.post('/estudiantes', (req, res) => {
-    const { nombre, edad, carrera } = req.body;
-
-    const result = db.prepare(
-        "INSERT INTO estudiantes (nombre, edad, carrera) VALUES (?, ?, ?)"
-    ).run(nombre, edad, carrera);
-
-    res.json({ id: result.lastInsertRowid });
-});
+// 4. Rutas de la API
 
 // Login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-
-    const user = db.prepare(
-        "SELECT * FROM usuarios WHERE username=? AND password=?"
-    ).get(username, password);
-
+    const user = db.prepare("SELECT * FROM usuarios WHERE username=? AND password=?").get(username, password);
     if (user) {
         res.json({ success: true });
     } else {
@@ -76,30 +57,35 @@ app.get('/estudiantes', (req, res) => {
     res.json(rows);
 });
 
-// Actualizar
+// Insertar estudiante
+app.post('/estudiantes', (req, res) => {
+    const { nombre, edad, carrera } = req.body;
+    const result = db.prepare("INSERT INTO estudiantes (nombre, edad, carrera) VALUES (?, ?, ?)").run(nombre, edad, carrera);
+    res.json({ id: result.lastInsertRowid });
+});
+
+// Actualizar estudiante
 app.put('/estudiantes/:id', (req, res) => {
     const { nombre, edad, carrera } = req.body;
     const { id } = req.params;
-
-    db.prepare(
-        "UPDATE estudiantes SET nombre=?, edad=?, carrera=? WHERE id=?"
-    ).run(nombre, edad, carrera, id);
-
+    db.prepare("UPDATE estudiantes SET nombre=?, edad=?, carrera=? WHERE id=?").run(nombre, edad, carrera, id);
     res.json({ mensaje: "Actualizado" });
 });
 
-// Eliminar
+// Eliminar estudiante
 app.delete('/estudiantes/:id', (req, res) => {
     const { id } = req.params;
-
     db.prepare("DELETE FROM estudiantes WHERE id=?").run(id);
-
     res.json({ mensaje: "Eliminado" });
 });
 
-// Servidor
-const PORT = process.env.PORT || 3000;
+// 5. Ruta para servir el Frontend (Siempre al final de las rutas)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
 
-app.listen(PORT, () => {
-    console.log(`Servidor en puerto ${PORT}`);
+// 6. Encendido del Servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor funcionando en el puerto ${PORT}`);
 });
