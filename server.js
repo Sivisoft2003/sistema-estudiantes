@@ -18,12 +18,13 @@ console.log("Conectado a la base de datos SQLite");
 
 // 3. Crear tablas si no existen e insertar admin
 db.exec(`
-  CREATE TABLE IF NOT EXISTS estudiantes (
+CREATE TABLE IF NOT EXISTS estudiantes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT,
     edad INTEGER,
-    carrera TEXT
-  );
+    carrera TEXT,
+    genero TEXT
+);
   CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
@@ -58,17 +59,30 @@ app.get('/estudiantes', (req, res) => {
 });
 
 // Insertar estudiante
+// Reemplaza temporalmente tu app.post con esto:
 app.post('/estudiantes', (req, res) => {
-    const { nombre, edad, carrera } = req.body;
-    const result = db.prepare("INSERT INTO estudiantes (nombre, edad, carrera) VALUES (?, ?, ?)").run(nombre, edad, carrera);
-    res.json({ id: result.lastInsertRowid });
+    console.log("--> LLEGÓ AL SERVIDOR:", req.body); // Esto DEBE salir en la terminal negra
+    const { nombre, edad, carrera, genero } = req.body;
+    try {
+        const result = db.prepare("INSERT INTO estudiantes (nombre, edad, carrera, genero) VALUES (?, ?, ?, ?)").run(nombre, edad, carrera, genero);
+        console.log("--> GUARDADO CON ID:", result.lastInsertRowid);
+        res.json({ id: result.lastInsertRowid });
+    } catch (err) {
+        console.error("--> ERROR DE SQL:", err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Actualizar estudiante
+// Actualizar estudiante (CORREGIDO)
 app.put('/estudiantes/:id', (req, res) => {
-    const { nombre, edad, carrera } = req.body;
+    const { nombre, edad, carrera, genero } = req.body;
     const { id } = req.params;
-    db.prepare("UPDATE estudiantes SET nombre=?, edad=?, carrera=? WHERE id=?").run(nombre, edad, carrera, id);
+    
+    // Agregamos "genero=?" y ahora hay 5 "?" para que coincidan con las 5 variables del .run()
+    db.prepare("UPDATE estudiantes SET nombre=?, edad=?, carrera=?, genero=? WHERE id=?")
+      .run(nombre, edad, carrera, genero, id);
+
     res.json({ mensaje: "Actualizado" });
 });
 

@@ -10,7 +10,7 @@
 
 <div class="container mt-5">
 
-    <h1 class="text-center mb-4">Sistema de Estudiantes</h1>
+    <h1 class="text-center mb-4">Sistema de Estudiantes pRUEBA</h1>
 
     <div class="card p-4 shadow mb-4">
         <h4>Registrar / Editar</h4>
@@ -18,6 +18,12 @@
         <input type="text" id="nombre" class="form-control mb-2" placeholder="Nombre">
         <input type="number" id="edad" class="form-control mb-2" placeholder="Edad">
         <input type="text" id="carrera" class="form-control mb-2" placeholder="Carrera">
+        <select id="genero" class="form-control mb-2">
+        <option value="">Seleccione Género</option>
+        <option value="Masculino">Masculino</option>
+        <option value="Femenino">Femenino</option>
+        <option value="Otro">Otro</option>
+        </select>
 
         <button onclick="guardar()" class="btn btn-primary">Guardar</button>
         <button onclick="logout()" class="btn btn-danger mb-3">Cerrar sesión</button>
@@ -42,6 +48,8 @@ function guardar() {
     const nombre = document.getElementById("nombre").value;
     const edad = document.getElementById("edad").value;
     const carrera = document.getElementById("carrera").value;
+    const genero = document.getElementById("genero").value;
+    if (!genero) return alert("Por favor, selecciona un género");
 
     if (editandoId) {
         // EDITAR
@@ -50,7 +58,7 @@ function guardar() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ nombre, edad, carrera })
+            body: JSON.stringify({ nombre, edad, carrera,genero})
         })
         .then(() => {
             editandoId = null;
@@ -64,7 +72,7 @@ function guardar() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ nombre, edad, carrera })
+            body: JSON.stringify({ nombre, edad, carrera, genero })
         })
         .then(() => {
             limpiar();
@@ -76,13 +84,14 @@ function editar(est) {
     document.getElementById("nombre").value = est.nombre;
     document.getElementById("edad").value = est.edad;
     document.getElementById("carrera").value = est.carrera;
-
+    document.getElementById("genero").value = est.genero;
     editandoId = est.id;
 }
 function limpiar() {
     document.getElementById("nombre").value = "";
     document.getElementById("edad").value = "";
     document.getElementById("carrera").value = "";
+    document.getElementById("genero").value ="";
 }
 
 function listar() {
@@ -96,7 +105,6 @@ function listar() {
         lista.innerHTML = "";
 
         data.forEach(est => {
-
             if (
                 est.nombre.toLowerCase().includes(filtro) ||
                 est.carrera.toLowerCase().includes(filtro)
@@ -107,7 +115,7 @@ function listar() {
                 li.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <strong>${est.nombre}</strong> - ${est.carrera} (${est.edad} años)
+                            <strong>${est.nombre}</strong> - ${est.carrera} (${est.edad} años) (${est.genero})
                         </div>
                         <div>
                             <button class="btn btn-warning btn-sm" onclick='editar(${JSON.stringify(est)})'>✏️</button>
